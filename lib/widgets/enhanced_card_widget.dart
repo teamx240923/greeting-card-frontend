@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import '../models/card.dart' as models;
 
-class EnhancedCardWidget extends StatelessWidget {
+class EnhancedCardWidget extends StatefulWidget {
   final models.Card card;
   final Function(String) onAction;
 
@@ -14,25 +20,34 @@ class EnhancedCardWidget extends StatelessWidget {
   });
 
   @override
+  State<EnhancedCardWidget> createState() => _EnhancedCardWidgetState();
+}
+
+class _EnhancedCardWidgetState extends State<EnhancedCardWidget> {
+  final GlobalKey _repaintBoundaryKey = GlobalKey();
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Stack(
-          children: [
-            // Media content based on type
-            _buildMediaContent(context),
+    return RepaintBoundary(
+      key: _repaintBoundaryKey,
+      child: Container(
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(
+            children: [
+              // Media content based on type
+              _buildMediaContent(context),
             
             // Gradient overlay
             Positioned(
@@ -62,7 +77,7 @@ class EnhancedCardWidget extends StatelessWidget {
             ),
             
             // Duration indicator for video/audio
-            if (card.duration != null)
+            if (widget.card.duration != null)
               Positioned(
                 top: 20,
                 right: 20,
@@ -78,7 +93,7 @@ class EnhancedCardWidget extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    card.occasion,
+                    widget.card.occasion,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -89,7 +104,7 @@ class EnhancedCardWidget extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        card.locale.toUpperCase(),
+                        widget.card.locale.toUpperCase(),
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 14,
@@ -113,7 +128,7 @@ class EnhancedCardWidget extends StatelessWidget {
                   _ActionButton(
                     icon: Icons.favorite_border,
                     activeIcon: Icons.favorite,
-                    onTap: () => onAction('like'),
+                    onTap: () => widget.onAction('like'),
                     activeColor: Colors.red,
                     inactiveColor: Colors.white,
                   ),
@@ -121,7 +136,7 @@ class EnhancedCardWidget extends StatelessWidget {
                   _ActionButton(
                     icon: Icons.thumb_down_outlined,
                     activeIcon: Icons.thumb_down,
-                    onTap: () => onAction('dislike'),
+                    onTap: () => widget.onAction('dislike'),
                     activeColor: Colors.grey[600],
                     inactiveColor: Colors.white,
                   ),
@@ -129,16 +144,16 @@ class EnhancedCardWidget extends StatelessWidget {
                   _ActionButton(
                     icon: Icons.bookmark_border,
                     activeIcon: Icons.bookmark,
-                    onTap: () => onAction('save'),
+                    onTap: () => widget.onAction('save'),
                     activeColor: Colors.purple,
                     inactiveColor: Colors.white,
                   ),
                   const SizedBox(height: 16),
                   _ActionButton(
                     icon: Icons.share,
-                    onTap: () {
-                      onAction('share');
-                      _shareCard();
+                    onTap: () async {
+                      widget.onAction('share');
+                      await _shareCard(context);
                     },
                     activeColor: Colors.green,
                     inactiveColor: Colors.white,
@@ -146,7 +161,7 @@ class EnhancedCardWidget extends StatelessWidget {
                   const SizedBox(height: 16),
                   _ActionButton(
                     icon: Icons.skip_next,
-                    onTap: () => onAction('next'),
+                    onTap: () => widget.onAction('next'),
                     activeColor: Colors.blue,
                     inactiveColor: Colors.white,
                   ),
@@ -155,7 +170,7 @@ class EnhancedCardWidget extends StatelessWidget {
             ),
             
             // Play button for video/audio
-            if (card.mediaType != models.MediaType.image)
+            if (widget.card.mediaType != models.MediaType.image)
               Center(
                 child: Container(
                   padding: const EdgeInsets.all(16),
@@ -164,7 +179,7 @@ class EnhancedCardWidget extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    card.mediaType == models.MediaType.video 
+                    widget.card.mediaType == models.MediaType.video 
                         ? Icons.play_arrow 
                         : Icons.volume_up,
                     color: Colors.white,
@@ -175,14 +190,14 @@ class EnhancedCardWidget extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildMediaContent(BuildContext context) {
-    switch (card.mediaType) {
+    switch (widget.card.mediaType) {
       case models.MediaType.image:
         return CachedNetworkImage(
-          imageUrl: card.imageUrl,
+          imageUrl: widget.card.imageUrl,
           fit: BoxFit.cover,
           width: double.infinity,
           height: double.infinity,
@@ -209,7 +224,7 @@ class EnhancedCardWidget extends StatelessWidget {
           children: [
             // Video thumbnail
             CachedNetworkImage(
-              imageUrl: card.thumbUrl.isNotEmpty ? card.thumbUrl : card.imageUrl,
+              imageUrl: widget.card.thumbUrl.isNotEmpty ? widget.card.thumbUrl : widget.card.imageUrl,
               fit: BoxFit.cover,
               width: double.infinity,
               height: double.infinity,
@@ -268,12 +283,12 @@ class EnhancedCardWidget extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                if (card.thumbUrl.isNotEmpty) ...[
+                if (widget.card.thumbUrl.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: CachedNetworkImage(
-                      imageUrl: card.thumbUrl,
+                      imageUrl: widget.card.thumbUrl,
                       width: 100,
                       height: 100,
                       fit: BoxFit.cover,
@@ -310,7 +325,7 @@ class EnhancedCardWidget extends StatelessWidget {
     IconData icon;
     String text;
     
-    switch (card.mediaType) {
+    switch (widget.card.mediaType) {
       case models.MediaType.image:
         color = Colors.blue;
         icon = Icons.image;
@@ -356,7 +371,7 @@ class EnhancedCardWidget extends StatelessWidget {
     Color color;
     IconData icon;
     
-    switch (card.mediaType) {
+    switch (widget.card.mediaType) {
       case models.MediaType.image:
         color = Colors.blue;
         icon = Icons.image;
@@ -383,7 +398,7 @@ class EnhancedCardWidget extends StatelessWidget {
           Icon(icon, color: color, size: 14),
           const SizedBox(width: 4),
           Text(
-            card.mediaType.name.toUpperCase(),
+            widget.card.mediaType.name.toUpperCase(),
             style: TextStyle(
               color: color,
               fontSize: 12,
@@ -396,10 +411,10 @@ class EnhancedCardWidget extends StatelessWidget {
   }
 
   Widget _buildDurationIndicator() {
-    if (card.duration == null) return const SizedBox.shrink();
+    if (widget.card.duration == null) return const SizedBox.shrink();
     
-    final minutes = card.duration!.inMinutes;
-    final seconds = card.duration!.inSeconds % 60;
+    final minutes = widget.card.duration!.inMinutes;
+    final seconds = widget.card.duration!.inSeconds % 60;
     final durationText = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
     
     return Container(
@@ -419,11 +434,104 @@ class EnhancedCardWidget extends StatelessWidget {
     );
   }
 
-  void _shareCard() {
-    Share.share(
-      'Check out this ${card.mediaType.name} greeting card: ${card.occasion}',
-      subject: 'Greeting Card - ${card.occasion}',
-    );
+  Future<void> _shareCard(BuildContext context) async {
+    try {
+      // Show toast notification
+      Fluttertoast.showToast(
+        msg: "Preparing card for sharing...",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.black87,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+
+      // Take screenshot of the card
+      final imageFile = await _takeScreenshot();
+      
+      if (imageFile != null) {
+        // Share the screenshot
+        await Share.shareXFiles(
+          [XFile(imageFile.path)],
+          text: 'Check out this ${widget.card.mediaType.name} greeting card: ${widget.card.occasion}',
+          subject: 'Greeting Card - ${widget.card.occasion}',
+        );
+        
+        // Clean up the temporary file after sharing
+        await imageFile.delete();
+        
+        // Show success toast
+        Fluttertoast.showToast(
+          msg: "Card shared successfully!",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+      } else {
+        // Fallback to text sharing if screenshot fails
+        await Share.share(
+          'Check out this ${widget.card.mediaType.name} greeting card: ${widget.card.occasion}',
+          subject: 'Greeting Card - ${widget.card.occasion}',
+        );
+        
+        Fluttertoast.showToast(
+          msg: "Shared as text message",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.orange,
+          textColor: Colors.white,
+          fontSize: 16.0,
+        );
+      }
+    } catch (e) {
+      print('Error sharing card: $e');
+      
+      // Show error toast
+      Fluttertoast.showToast(
+        msg: "Failed to share card",
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0,
+      );
+      
+      // Fallback to text sharing
+      await Share.share(
+        'Check out this ${widget.card.mediaType.name} greeting card: ${widget.card.occasion}',
+        subject: 'Greeting Card - ${widget.card.occasion}',
+      );
+    }
+  }
+
+  Future<File?> _takeScreenshot() async {
+    try {
+      // Get the RenderRepaintBoundary
+      final RenderRepaintBoundary boundary = 
+          _repaintBoundaryKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      
+      // Capture the image
+      final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      
+      if (byteData == null) return null;
+
+      // Get temporary directory
+      final tempDir = await getTemporaryDirectory();
+      final fileName = 'greeting_card_${widget.card.id}_${DateTime.now().millisecondsSinceEpoch}.png';
+      final filePath = '${tempDir.path}/$fileName';
+      
+      // Save the screenshot
+      final file = File(filePath);
+      await file.writeAsBytes(byteData.buffer.asUint8List());
+      
+      return file;
+    } catch (e) {
+      print('Error taking screenshot: $e');
+      return null;
+    }
   }
 }
 
