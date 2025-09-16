@@ -1,0 +1,196 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.16.0'
+        channel: 'stable'
+    
+    - name: Cache Flutter dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.pub-cache
+          .dart_tool
+        key: ${{ runner.os }}-flutter-${{ hashFiles('pubspec.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-flutter-
+    
+    - name: Install dependencies
+      run: |
+        flutter pub get
+    
+    - name: Run tests
+      run: |
+        flutter test --coverage
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage/lcov.info
+        flags: frontend
+        name: frontend-coverage
+
+  analyze:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.16.0'
+        channel: 'stable'
+    
+    - name: Install dependencies
+      run: |
+        flutter pub get
+    
+    - name: Run Flutter analyze
+      run: |
+        flutter analyze
+    
+    - name: Check formatting
+      run: |
+        dart format --output=none --set-exit-if-changed .
+
+  build-web:
+    needs: [test, analyze]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.16.0'
+        channel: 'stable'
+    
+    - name: Install dependencies
+      run: |
+        flutter pub get
+    
+    - name: Build web
+      run: |
+        flutter build web --release
+    
+    - name: Upload web build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: web-build
+        path: build/web/
+
+  build-android:
+    needs: [test, analyze]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: '11'
+    
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.16.0'
+        channel: 'stable'
+    
+    - name: Install dependencies
+      run: |
+        flutter pub get
+    
+    - name: Build Android APK
+      run: |
+        flutter build apk --release
+    
+    - name: Upload Android build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: android-build
+        path: build/app/outputs/flutter-apk/
+
+  build-ios:
+    needs: [test, analyze]
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.16.0'
+        channel: 'stable'
+    
+    - name: Install dependencies
+      run: |
+        flutter pub get
+    
+    - name: Build iOS
+      run: |
+        flutter build ios --release --no-codesign
+    
+    - name: Upload iOS build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ios-build
+        path: build/ios/
+
+  build-docker:
+    needs: [build-web]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    - name: Build and push frontend image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile.web
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/greetingcard-frontend:latest
+          ${{ secrets.DOCKER_USERNAME }}/greetingcard-frontend:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  deploy:
+    needs: [build-docker]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Deploy to production
+      run: |
+        echo "Deploying frontend to production..."
+        # Add your deployment commands here
+

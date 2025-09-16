@@ -1,0 +1,25 @@
+# Development Dockerfile for Flutter web app
+FROM node:18-alpine
+
+# Install Flutter
+RUN apk add --no-cache git curl unzip
+RUN curl -fsSL https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.16.0-stable.tar.xz | tar -xJ -C /opt
+ENV PATH="/opt/flutter/bin:${PATH}"
+
+# Set working directory
+WORKDIR /app
+
+# Copy pubspec files
+COPY pubspec.yaml pubspec.lock ./
+
+# Get dependencies
+RUN flutter pub get
+
+# Copy source code
+COPY . .
+
+# Expose port
+EXPOSE 3000
+
+# Start development server
+CMD ["flutter", "run", "-d", "web-server", "--web-port", "3000", "--web-hostname", "0.0.0.0"]
