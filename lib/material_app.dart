@@ -460,7 +460,7 @@ class _MaterialHomePageState extends ConsumerState<MaterialHomePage> {
             onRefresh: _loadCards,
             child: ListView.builder(
               controller: _scrollController,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               itemCount: _cards.length + (_isLoadingMore ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == _cards.length) {
@@ -495,26 +495,44 @@ class _MaterialHomePageState extends ConsumerState<MaterialHomePage> {
       print('Created new key for card ID: $cardId');
     }
     
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Screenshot-able Card Container (without action buttons)
-        RepaintBoundary(
-          key: _cardKeys[cardId],
-          child: Container(
-          margin: const EdgeInsets.only(bottom: 8),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+        // Bordered Container for Image and Action Buttons
+        Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            border: Border.all(
+              color: const Color(0xFFE0E0E0),
+              width: 2,
+            ),
+            borderRadius: BorderRadius.circular(20),
           ),
+          child: Column(
+            children: [
+              // Screenshot-able Card Container (without action buttons)
+              RepaintBoundary(
+                key: _cardKeys[cardId],
+                child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(16),
+              topRight: Radius.circular(16),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -562,10 +580,6 @@ class _MaterialHomePageState extends ConsumerState<MaterialHomePage> {
                     padding: const EdgeInsets.all(16),
                     decoration: const BoxDecoration(
                       color: Color(0xFFE3E2DA),
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(16),
-                        bottomRight: Radius.circular(16),
-                      ),
                     ),
                     child: Row(
                       children: [
@@ -670,9 +684,9 @@ class _MaterialHomePageState extends ConsumerState<MaterialHomePage> {
           ),
         ),
         
-        // Action Buttons Aligned with Card (outside RepaintBoundary)
+        // Action Buttons Aligned with Card (inside bordered container)
         Container(
-          margin: const EdgeInsets.only(top: 8, bottom: 24),
+          margin: const EdgeInsets.only(top: 8, bottom: 8, left: 8, right: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -681,20 +695,6 @@ class _MaterialHomePageState extends ConsumerState<MaterialHomePage> {
                       interactionType: 'like',
                       icon: Icons.favorite,
                       backgroundColor: const Color(0xFFE91E63),
-              ),
-              const SizedBox(width: 16),
-              _buildSmallActionButton(
-                      contentId: card['id'],
-                      interactionType: 'dislike',
-                      icon: Icons.thumb_down,
-                      backgroundColor: const Color(0xFF757575),
-              ),
-              const SizedBox(width: 16),
-              _buildSmallActionButton(
-                      contentId: card['id'],
-                      interactionType: 'save',
-                      icon: Icons.bookmark,
-                      backgroundColor: const Color(0xFF9C27B0),
               ),
               const SizedBox(width: 16),
               _buildSmallActionButton(
@@ -737,7 +737,11 @@ class _MaterialHomePageState extends ConsumerState<MaterialHomePage> {
             ],
           ),
         ),
-      ],
+            ],
+          ),
+        ),
+        ],
+      ),
     );
   }
 
@@ -1384,7 +1388,7 @@ class _AnimatedSmallActionButtonState extends State<_AnimatedSmallActionButton>
               height: 48,
               decoration: BoxDecoration(
                 color: widget.backgroundColor,
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
                     color: widget.backgroundColor.withOpacity(0.3),

@@ -18,18 +18,32 @@ class CardWidget extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
+        border: Border.all(
+          color: const Color(0xFFE0E0E0),
+          width: 2,
+        ),
+        borderRadius: BorderRadius.circular(20),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Stack(
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(16),
+            topRight: Radius.circular(16),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(16),
+            topRight: Radius.circular(16),
+          ),
+          child: Stack(
           children: [
             // Card image
             CachedNetworkImage(
@@ -116,22 +130,6 @@ class CardWidget extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   _ActionButton(
-                    icon: Icons.thumb_down_outlined,
-                    activeIcon: Icons.thumb_down,
-                    onTap: () => onAction('dislike'),
-                    activeColor: Colors.grey[600],
-                    inactiveColor: Colors.white,
-                  ),
-                  const SizedBox(height: 16),
-                  _ActionButton(
-                    icon: Icons.bookmark_border,
-                    activeIcon: Icons.bookmark,
-                    onTap: () => onAction('save'),
-                    activeColor: Colors.purple,
-                    inactiveColor: Colors.white,
-                  ),
-                  const SizedBox(height: 16),
-                  _ActionButton(
                     icon: Icons.share,
                     onTap: () {
                       onAction('share');
@@ -151,6 +149,7 @@ class CardWidget extends StatelessWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );
@@ -247,7 +246,7 @@ class _ActionButtonState extends State<_ActionButton>
               height: 50,
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(0.5),
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 _isActive && widget.activeIcon != null 
